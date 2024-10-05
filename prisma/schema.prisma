@@ -1,14 +1,126 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int         @id @default(autoincrement())
+  username       String      @unique
+  email          String      @unique
+  password       String
+  name           String?
+  mobile         String?     @unique
+  gender         String?
+  profilePicture String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  //Relations
+  address        Address?    @relation
+  orders         Order[]
+  cartItems      CartItem[]
+  reviews        Review[]
+
+  @@map("users")
+}
+
+model Address {
+  id          Int       @id @default(autoincrement())
+  street      String
+  city        String
+  state       String
+  postalCode  String
+  country     String
+  userId      Int       @unique
+
+  //Relations  
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@map("address")
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String
+  description String?
+  mrp         Float
+  discount    Int
+  price       Float
+  stock       Int         @default(0)
+  imageUrl    String?
+  visit       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  orderItems  OrderItem[]
+  reviews     Review[]
+  cartItems   CartItem[]  // Added reverse relation
+
+  // Virtual fields
+  averageRating Float?    // Calculated average rating of the product
+  totalReviews  Int?      // Total number of reviews
+
+  @@map("products")
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  userId      Int
+  totalAmount Float
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  user        User        @relation(fields: [userId], references: [id])
+  orderItems  OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id          Int         @id @default(autoincrement())
+  orderId     Int
+  productId   Int
+  quantity    Int         @default(1)
+  price       Float
+
+  //Relations
+  order       Order       @relation(fields: [orderId], references: [id])
+  product     Product     @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model CartItem {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  productId   Int
+  quantity    Int       @default(1)
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id])
+  product     Product   @relation(fields: [productId], references: [id])
+
+  @@map("cart_items")
+}
+
+model Review {
+  id          Int         @id @default(autoincrement())
+  rating      Int         @default(0) // Rating, e.g., out of 5
+  comment     String?     // Optional comment or review text
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  userId      Int         // Foreign key to User
+  user        User        @relation(fields: [userId], references: [id])
+  productId   Int         // Foreign key to Product
+  product     Product     @relation(fields: [productId], references: [id])
+
+  @@map("reviews")
 }
